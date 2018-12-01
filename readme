@@ -17,7 +17,7 @@ repositorio dentro das instancias configuradas, isso ja eh feito automaticamente
     Antes de rodar, para garantir as dependencias, rode o install.sh que esta dentro do modulo remoto, ele deve resolver qualquer dependencia, mesmo assim a unica biblioteca que nao eh padrao que
 o programa usa eh o Boto3.
     Para rodar, va na pasta do modulo local e digite:
-        python3 main.py <numero de instancias desejadas>
+        python3 main.py <numero de instancias desejadas> <nome do bucket | default=jeanclouddespair>
     O codigo fara o resto, eh importante perceber que ele usa as credencias do seu computador, entao eh importante ter as configuracoes do aws instaladas no computador, pra isso execute:
         aws configure
     Caso de um erro de dependencia do aws, o prompt vai mostrar um comando para instalar o que faltar.
