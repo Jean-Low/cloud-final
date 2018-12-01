@@ -1,0 +1,52 @@
+
+
+--- Projeto de Computacao em nuvem ---
+
+    O projeto eh basicamente um repositorios de login e senha de usuarios com um controlador load balancer. Ao rodar o programa, ele configura um ambiente cloud no amazon AWS Ec2.
+Um load balancer fica responsavel por garantir a estabilidade do sistema e a coesao entre as instancias responsaveis por fazer a ponte ate o repositorio. Esse load balancer eh configurado
+em uma instancia propria no AWS, entao apos rodar o arquivo de inicializacao o programa roda completamente na nuvem.
+    As instancias criadas alem do load balancer usam o Boto3 para acessar buckets do S3 do AWS. O load balancer direciona um user para uma instancia aleatoria. Todas as instancias entretanto
+Compartilham o mesmo bucket, tornando o programa stateless. Cada instancia eh capaz de criar um login novo (signup), logar para acessar a pagina protegida com muita informacao relevante (signin),
+listar todos os logins e senhas (list) e tem um healthcheck para uso do loadbalancer. O bucket guarda varios arquivos de texto, o nome do arquivo armazena o login e o conteudo a senha. Fiz assim
+por que queria garantir que mesmo se duas intancias alterem ao mesmo tempo o repositorio continua valido, com varios pequenos arquivos, cada instancia altera apenas a variavel que lhe enteressa.
+
+--- Rodando
+    O projeto esta dividido em dois modulos, um eu chamei de local, e o outro de remoto. O local contem o script de inicializacao (main.py)  e uma pasta onde sua access key fica salva (mas nao esta 
+indo pro github), esse modulo eh rodado da sua maquina e configura tudo. O segundo modulo contem um arquivo da rest, o loadbalancer e um instalador de dependencias, ele deve ser clonado a um
+repositorio dentro das instancias configuradas, isso ja eh feito automaticamente a partir de um repositorio git meu pelo script de inicializacao.
+    Antes de rodar, para garantir as dependencias, rode o install.sh que esta dentro do modulo remoto, ele deve resolver qualquer dependencia, mesmo assim a unica biblioteca que nao eh padrao que
+o programa usa eh o Boto3.
+    Para rodar, va na pasta do modulo local e digite:
+        python3 main.py <numero de instancias desejadas>
+    O codigo fara o resto, eh importante perceber que ele usa as credencias do seu computador, entao eh importante ter as configuracoes do aws instaladas no computador, pra isso execute:
+        aws configure
+    Caso de um erro de dependencia do aws, o prompt vai mostrar um comando para instalar o que faltar.
+    Ao rodar, uma chave pem sera criada na pasta key, mas ela nao eh nescessaria para o estado atual do codigo.
+    Com isso, codigo esta rodando na sua AWS, o terminal mostra o id da maquina do load balancer, eh preciso pegar o ip publico da maquina manualmente pelo ec2 dashboard.
+    Para acessar com um ssh e debugar as instancias, eh nescessario alterar as variaveis que sao passadas no userdata quando uma instacia eh criada, para controlar e ver os logs dos programas, o ideal
+eh remover a ultima linha do codigo e executala na mao, digitando as variaveis na mao, incluindo as credenciais.
+
+--- Usando
+    Com o projeto rodando, ache o ip publico do loadbalancer e o acesse pela porta 5000 (ex: 54.88.53.49:5000).
+    ha 6 rotas na rest:
+        get /healthcheck
+            retorna um sinal para indicar que a maquina esta ativa
+        get /checkamount
+            indica o numero preferido atual de instancias
+        get /setamount
+            altera o numero preferido de instancias (o numero real de instancias eh alterado dinamicamente)
+        get /list
+            retorna a lista de pares de login - senha
+        post /signup/<login>/<senha>
+            adiciona suas informacoes ao repositorio do bucket
+        get signin/<login>/<senha>
+            se voce estiver no repositorio, te leva ate a pagina protegida.
+
+--- Funcionamento load balancer
+    O load balancer sabe quantas instancias deveriam existir, e tem um dicionario {ip : id} de cada uma. Um thread faz com que a cada mais ou menos 20 segundos ele cheque se todas as instancias dele
+estao ativas com um healthcheck, Se uma ou mais nao responder, ele tenta executar o Terminate nela e a remove do seu dicionario. no fim desse ciclo que ocorre periodicamente, caso ele esteja com menos
+ou mais instancias do que o desejado, ele remove ou cria novas. Ele faz isso de forma na qual seria possivel dois loadbalancers rodarem no mesmo grupo do ec2, a unico problema eh garantir que as
+maquinas iniciais nao estao compartilhadas, esse check nao ocorre.
+            
+            
+
